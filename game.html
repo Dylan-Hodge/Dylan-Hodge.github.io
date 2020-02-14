@@ -20,6 +20,9 @@
 
 		</div>
 		<script>
+
+
+
 			var scene = new THREE.Scene();
 			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
 			var renderer = new THREE.WebGLRenderer();
@@ -54,6 +57,7 @@
 				var parent;
 				var doomCollisions = {};
 				var building; 
+				var texture;
 				
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			document.body.appendChild( renderer.domElement );
@@ -75,6 +79,7 @@
 				setInterval(logDirection, 1000);
 				console.log(scene.getObjectByName("doomGuy", true));
 				house.scale.set(3,3,3);
+				scene.background = texture;
 				animate();
 
 			};
@@ -92,10 +97,10 @@
             
             function loadObjects() {
                 var loader = new THREE.GLTFLoader(manager);
-                loader.load('js/Objects/house1.3.gltf',
+                loader.load('js/Objects/house1.5.glb',
                     // called when the resource is loaded
                     function (gltf) {
-                        house = gltf.scene.children[0];
+                        house = gltf.scene;
 						scene.add(house);
                         house.rotation.y = - Math.PI / 2;
                         house.position.set(55, -1.5, 30);
@@ -124,7 +129,16 @@
                     building.position.z = -200; 
 					building.name = "building";
 					building.scale.set(3, 3, 3);
-                   });				   
+                   });	
+				var backgroundLoader = new THREE.CubeTextureLoader(manager);
+				texture = backgroundLoader.load([
+						'js/Objects/right.png',
+						'js/Objects/left.png',
+						'js/Objects/top.png',
+						'js/Objects/bottom.png',
+						'js/Objects/front.png',
+						'js/Objects/back.png',
+				]);
             }
             loadObjects();
 		
@@ -320,25 +334,34 @@
 
 			//AMBIENT SOUND
             var ambientFloor = new THREE.Audio(listener);
-            audioLoader.load('js/Sounds/floor_boards.ogg', function (buffer) {
+            audioLoader.load('js/Sounds/floorCracking.ogg', function (buffer) {
                 ambientFloor.setBuffer(buffer);
                 ambientFloor.setLoop(true);
-                ambientFloor.setVolume(.5);
+                ambientFloor.setVolume(.7);
                 ambientFloor.play();
             });
 
-			//CHASE SOUND
-           /* var doom1 = new THREE.PositionalAudio(listener);
+            var ambientWind = new THREE.Audio(listener);
+			audioLoader.load('js/Sounds/howlingWind.ogg', function (buffer) {
+                ambientWind.setBuffer(buffer);
+                ambientWind.setLoop(true);
+                ambientWind.setVolume(.5);
+                ambientWind.play();
+            });
+
+			/*//CHASE SOUND
+            var doom1 = new THREE.PositionalAudio(listener);
             //doom1.setDirectionalCone(180, 230, 0.1);
-            //var helper = new PositionalAudioHelper(doom1);
+            //var helper = new PositionalAudioHelper(doom1, 0.1);
             //doom1.add(helper);
             audioLoader.load('js/Sounds/rip_and_tear.ogg', function (buffer) {
                 doom1.setBuffer(buffer);
                 doom1.setRefDistance(4);
                 doom1.play();
             });
-			cone.add(doom1);
-*/
+            cone.add(doom1);
+			//doomGuy.add(doom1);*/
+
 			
 			
 
