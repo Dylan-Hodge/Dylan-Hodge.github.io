@@ -38,7 +38,6 @@
 				var raycasterR = new THREE.Raycaster();   // R for Right, as in Slightly to the right
 				var raycasterLP = new THREE.Raycaster();  // LP for Left Perpendicular, as in Hard Left
 				var raycasterRP = new THREE.Raycaster();
-				var seeCone = false; 
 				var direction = new THREE.Vector3();     
 				var directionB = new THREE.Vector3();
 				var directionL = new THREE.Vector3();
@@ -57,7 +56,15 @@
 				var parent;
 				var doomCollisions = {};
 				var building; 
-				var texture;
+				var skyTexture = [];
+				var raycasterD = new THREE.Raycaster();
+				var directionD = new THREE.Vector3(0, -1, 0);
+				var collisionsD = {};
+				var skull;
+				var skull2;
+				var skullBBox;
+				var skullPickUp = false; 
+				
 				
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			document.body.appendChild( renderer.domElement );
@@ -76,10 +83,12 @@
 			manager.onLoad = function ( ) {
 
 				console.log( 'Loading complete!');
-				setInterval(logDirection, 1000);
 				console.log(scene.getObjectByName("doomGuy", true));
 				house.scale.set(3,3,3);
-				scene.background = texture;
+				scene.background = skyTexture;			
+				setSkullBBox();
+				setInterval(logDirection, 1000);
+
 				animate();
 
 			};
@@ -130,8 +139,17 @@
 					building.name = "building";
 					building.scale.set(3, 3, 3);
                    });	
+                loader.load('js/Objects/skull/scene.gltf', function (gltf) {
+					skull = gltf.scene;
+					skull2 = gltf.scene.clone();
+					scene.add(skull);
+					skull.position.set(110, 1, 101);
+					skull2.position.z = -10;
+					scene.add(skull2);
+                   });				   
 				var backgroundLoader = new THREE.CubeTextureLoader(manager);
-				texture = backgroundLoader.load([
+
+				skyTexture = backgroundLoader.load([
 						'js/Objects/right.png',
 						'js/Objects/left.png',
 						'js/Objects/top.png',
@@ -140,7 +158,7 @@
 						'js/Objects/back.png',
 				]);
             }
-            loadObjects();
+            loadObjects();	
 		
 		var blocker = document.getElementById( 'blocker' );
 			var instructions = document.getElementById( 'instructions' );
@@ -219,8 +237,6 @@
 				//Controls
 				controls = new THREE.PointerLockControls( camera );
                 scene.add(controls.getObject());
-				var playerBBox = new THREE.Box3().setFromObject(controls.getObject());
-				scene.add(playerBBox);
 				var onKeyDown = function ( event ) {
 					switch ( event.keyCode ) {
 						case 38: // up
@@ -281,6 +297,7 @@
 				
 		
                 window.addEventListener('resize', onWindowResize, false);
+				
                
 			}
 			function onWindowResize() {
@@ -292,24 +309,6 @@
 		
 		
 
-			var geometry = new THREE.ConeGeometry( 2, 5, 5 );
-			var material = new THREE.MeshLambertMaterial( {color: 0xFF3333} );
-			var cone = new THREE.Mesh( geometry, material );
-			scene.add( cone );
-			cone.name = "cone";
-
-
-			cone.translateZ(-5);
-
-			camera.position.z = 5;
-			var box;
-			geometry = new THREE.BoxGeometry( 3, 3, 3 );
-			for( var i = 10; i < 1000; i+= 10){
-				material = new THREE.MeshLambertMaterial( {color:  (Math.random() * 0xffffff)});
-				box = new THREE.Mesh(geometry, material);
-				scene.add(box);
-				box.translateX(i);
-			}
 
 
 
@@ -321,11 +320,7 @@
 			}
 			
 			
-			function coneChase(){
-				var player = new THREE.Vector3();				//These two lines create an empty vector and copy the current position of the player into it,
-				camera.getWorldPosition(player);            	//so we can make something chase the player.   
-				cone.translateOnAxis(cone.worldToLocal(player), .01);		
-            }
+
 
 			//WORKING ON SOUND HERE
             var listener = new THREE.AudioListener();
@@ -370,6 +365,7 @@
 				var position = new THREE.Vector3();		
 				camera.getWorldPosition(position);
 				raycaster.set( position, direction);
+				raycasterD.set(position, directionD);
 				directionB.x = -direction.x;					//B for Back
 				directionB.z = -direction.z;
 				directionB.y = direction.y; 
@@ -404,16 +400,14 @@
 				collisionsLP = raycasterLP.intersectObjects(scene.children, true);
 				collisionsR = raycasterR.intersectObjects(scene.children, true);
 				collisionsRP = raycasterRP.intersectObjects(scene.children, true); 
-				
+				collisionsD = raycasterD.intersectObjects(scene.children, true);
 				
 
 				for(i = 0; i < collisions.length; i++){
 					if(collisions[i].distance < 3.3){
 						moveForward = false;
 					}
-					if(collisions[i].object == cone){
-						seeCone = true;
-					}
+
 
 /*				parent = collisions[i].object;
 					while(parent){
@@ -427,9 +421,7 @@
 					if(collisionsL[i].distance < 1.2){
 						moveForward = false;
 					}
-					if(collisionsL[i].object == cone){
-						seeCone = true;
-					}		
+
 					parent = collisionsL[i].object;
 					while(parent){
 						parent = parent.parent;
@@ -442,9 +434,7 @@
 					if(collisionsR[i].distance < 1.2){
 						moveForward = false;
 					}
-					if(collisionsR[i].object == cone){
-						seeCone = true;
-					}			
+
 					parent = collisionsR[i].object;
 					while(parent){
 						parent = parent.parent;
@@ -472,21 +462,40 @@
 			}
 			
 			
+			function setSkullBBox(){
+				skullBBox = new THREE.Box3();
+				skullBBox.setFromObject(skull);
+				skullBBox.min.x -= 5;
+				skullBBox.min.y -= 5;
+				skullBBox.min.z -= 5;
+				skullBBox.max.x += 5;
+				skullBBox.max.y += 5;
+				skullBBox.max.z += 5;
+				
+	
+			}
 
-
+			function checkSkulls(){
+				if(skullBBox.containsPoint(camera.position)){
+					skull.visible = false;
+				}
+			}
+			
+			
 			var animate = function () {
-				var coneInArray = false; 
+				skull.rotateY(.1);
+				skull2.rotateY(.1);
+				checkSkulls();
+				
+				
+				
+				
 				var doomGuyInArray = false;
 				requestAnimationFrame( animate );
 				updateRaycasters();
-				if(seeCone == false){
-					cone.rotateZ(.01);
-					cone.rotateX(.02);
-					cone.rotateY(.03);
-					coneChase();
-                }
+
 				if(seeDoomGuy == false) {
-					doomGuyChase();
+				//	doomGuyChase();
 					doomGuy.rotateY(.05);
 
 				}
@@ -507,16 +516,15 @@
 					if(moveRight){
 						controls.getObject().translateX(delta);
 					}
-					if ( controls.getObject().position.y != 0  ) {
-						controls.getObject().position.y = 0;
-						
+				//	if ( controls.getObject().position.y != 0  ) {
+				//		controls.getObject().position.y = 0;	
+				//	}
+					if(collisionsD[0]){
+						controls.getObject().position.y = collisionsD[0].point.y + 2.5; 
 					}
 				}
 				renderer.render( scene, camera );
 				for( i = 0; i < collisions.length; i++){
-					if(collisions[i].object == cone){
-						coneInArray = true;
-					}
 
 					parent = collisions[i].object; 
 					while(parent){
@@ -527,9 +535,6 @@
 					}					
 				}
 				for(i = 0; i < collisionsL.length; i++){
-					if(collisionsL[i].object == cone){
-						coneInArray = true;
-					}
 
 					parent = collisionsL[i].object; 
 					while(parent){
@@ -540,10 +545,7 @@
 					}					
 				}		
 				for(i = 0; i < collisionsR.length; i++){
-					if(collisionsR[i].object == cone){
-						coneInArray = true;
-					}
-
+	
 					parent = collisionsR[i].object; 
 					while(parent){
 						parent = parent.parent;
@@ -553,9 +555,6 @@
 					}					
 				}					
 				
-				if(!coneInArray){
-					seeCone = false;
-				}
 				if(!doomGuyInArray){
 					seeDoomGuy = false;
 				}
@@ -564,11 +563,12 @@
 				}
 			};
             function logDirection() {
-				console.log(doomCollisions);
-			  //  console.log(scene.getObjectByName("doomGuy", true));
+				console.log(skull);
+				
+				console.log(skullBBox.containsPoint(camera.position));
+				//console.log(controls.getObject().position);
 				//console.log(directionR);
 			}
-			//setInterval(logDirection, 1000);
 		
 			
 		</script>
