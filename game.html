@@ -24,49 +24,49 @@
 
 
 			var scene = new THREE.Scene();
+			var scene1 = new THREE.Scene();
+			var scene2 = new THREE.Scene(); 
+			scene = scene1; 
 			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
 			var renderer = new THREE.WebGLRenderer();
-				var controlsEnabled = false;
-				var moveForward = false;
-				var moveBackward = false;
-				var moveLeft = false;
-				var moveRight = false;
-				var canJump = false;		
-				var raycaster = new THREE.Raycaster(); 
-				var raycasterB = new THREE.Raycaster();   //B for Back
-				var raycasterL = new THREE.Raycaster();   // L for Left, as in Slightly to the left.
-				var raycasterR = new THREE.Raycaster();   // R for Right, as in Slightly to the right
-				var raycasterLP = new THREE.Raycaster();  // LP for Left Perpendicular, as in Hard Left
-				var raycasterRP = new THREE.Raycaster();
-				var direction = new THREE.Vector3();     
-				var directionB = new THREE.Vector3();
-				var directionL = new THREE.Vector3();
-				var directionR = new THREE.Vector3();
-				var directionLP = new THREE.Vector3(); 
-				var directionRP = new THREE.Vector3();
-				var collisions = {};
-				var collisionsB = {}; 
-				var collisionsL = {};
-				var collisionsLP = {}; 
-				var collisionsR = {};
-				var collisionsRP = {};
-				var house;
-				var doomGuy;
-				var seeDoomGuy = false;
-				var parent;
-				var doomCollisions = {};
-				var building; 
-				var skyTexture = [];
-				var raycasterD = new THREE.Raycaster();
-				var directionD = new THREE.Vector3(0, -1, 0);
-				var collisionsD = {};
-				var skull;
-				var skull2;
-				var skull3;
-				var skullBBox;
-				var skullBBox2;
-				var skullBBox3;
-				var skullCount = 0;
+			var controlsEnabled = false;
+			var moveForward = false;
+			var moveBackward = false;
+			var moveLeft = false;
+			var moveRight = false;
+			var canJump = false;		
+			var house;
+			var doomGuy;
+			var seeDoomGuy = false;
+			var parent;
+			var doomCollisions = {};
+			var building; 
+			var skyTexture = [];
+			var raycasterD = new THREE.Raycaster();
+			var directionD = new THREE.Vector3(0, -1, 0);
+			var collisionsD = {};
+			var skull;
+			var skull2;
+			var skull3;
+			var skullBBox;
+			var skullBBox2;
+			var skullBBox3;
+			var skullCount = 0;
+			var doomGuyBBox;
+			var mixer;
+			var lastFrame = Date.now();
+			var walk;
+			var run;
+            var still;
+            var stillToWalk;
+			doomGuyBBox = new THREE.Box3();			
+			var cubeBBox = new THREE.Box3();
+			var cube;
+			var houseBBoxes = {};
+			var buildingBBoxes = {};
+			var houseBBoxCount = 40;
+
+
 				
 				
 			renderer.setSize( window.innerWidth, window.innerHeight );
@@ -89,10 +89,12 @@
 				console.log(scene.getObjectByName("doomGuy", true));
 				house.scale.set(3,3,3);
 				scene.background = skyTexture;			
-				setSkullBBoxs();
+                setSkullBBoxs();
+                chaseSound();
+                ambientNoise();
 				setInterval(logDirection, 1000);
 				building.visible = false;
-
+				
 				animate();
 
 			};
@@ -110,16 +112,60 @@
             
             function loadObjects() {
                 var loader = new THREE.GLTFLoader(manager);
-                loader.load('js/Objects/house1.5.glb',
+                loader.load('js/Objects/House/houseShell5.glb',
                     // called when the resource is loaded
                     function (gltf) {
                         house = gltf.scene;
 						scene.add(house);
                         house.rotation.y = - Math.PI / 2;
-                        house.position.set(55, -1.5, 30);
+                        house.position.set(55, -2, 30);
+						houseBBoxes[0] = new THREE.Box3(new THREE.Vector3(97.92601422391, -2 , 34.15341844895645), new THREE.Vector3(102.06848069827979 , 10, 78.65107712409612));  
+						houseBBoxes[1] = new THREE.Box3(new THREE.Vector3(101.9259180603165 , -2 , 34.36070653342341), new THREE.Vector3( 139.87796127698655, 10, 37.89793781433861));
+						houseBBoxes[2] = new THREE.Box3(new THREE.Vector3(136.86987439472297 , -2, 37.607029122153165), new THREE.Vector3( 139.72427104182447, 10, 113.49595653976305));
+						houseBBoxes[3] = new THREE.Box3(new THREE.Vector3(73.8225104675347, -2,  109.97977706103694), new THREE.Vector3( 137.63925878535912, 10, 113.86793023790936));
+						houseBBoxes[4] = new THREE.Box3(new THREE.Vector3(73.89429819609268, -2, 83.52235034462691), new THREE.Vector3( 78.29069146628301, 10,110.79158983531276 ));
+						houseBBoxes[5] = new THREE.Box3(new THREE.Vector3(78.29069146628301, -2, 83.83132369890478), new THREE.Vector3(102.55258961331263, 10, 86.79112362061738));
+						houseBBoxes[6] = new THREE.Box3(new THREE.Vector3(102.05598936666685, -2,83.05397473204764), new THREE.Vector3( 105.30265455528645, 10, 90.44204213247721));
+						houseBBoxes[7] = new THREE.Box3(new THREE.Vector3( 101.66524254755797, -2, 78.14923704537244), new THREE.Vector3( 105.26433731356099, 10, 80.48333655863605 ));
+						//hallway
+						houseBBoxes[8] = new THREE.Box3(new THREE.Vector3(102.1672300653852, -2, 76.40571876961706), new THREE.Vector3(118.57570038112543 , 10, 79.60202263221525));
+						houseBBoxes[9] = new THREE.Box3(new THREE.Vector3(102.04209337774811, -2 , 59.78905469175373), new THREE.Vector3(112.08040314336925, 10, 62.51315826844717));
+						houseBBoxes[10] = new THREE.Box3(new THREE.Vector3(106.00415390790605, -2, 55.583040700425836), new THREE.Vector3(108.17541240346326, 10, 59.73116781749373));
+						//hallway
+						houseBBoxes[11] = new THREE.Box3(new THREE.Vector3(108.13788084640933, -2, 55.58146246614765), new THREE.Vector3(118.57990744816739, 10, 57.93409726729914));
+						houseBBoxes[12] = new THREE.Box3(new THREE.Vector3(113.92470699573826, -2, 57.57490617367147), new THREE.Vector3(116.02508305625377, 10, 62.01632293834936));
+						//hallway
+						houseBBoxes[13] = new THREE.Box3(new THREE.Vector3(116.03535178101785, -2, 60.038133631387936), new THREE.Vector3(118.57570038112543, 10, 72.72578275949073));
+						//hallway
+						houseBBoxes[14] = new THREE.Box3(new THREE.Vector3(116.62917230840127, -2, 52.02254324538407), new THREE.Vector3(118.57990744816739, 10, 56.40227970129457));
+						houseBBoxes[15] = new THREE.Box3(new THREE.Vector3(103.47274420112089, -2, 94.33225409193427), new THREE.Vector3(119.92151493268069, 5, 96.55603211057256));
+						houseBBoxes[16] = new THREE.Box3(new THREE.Vector3(120.74682371829535, -2, 59.53862901985289), new THREE.Vector3(122.58108787965476, 10, 78.75672608810808));
+						//staircase left
+						houseBBoxes[17] = new THREE.Box3(new THREE.Vector3(106.06325638714221, -2, 101.99279800009121), new THREE.Vector3(108.53603036713128, 5, 109.89594887144517));
+						houseBBoxes[18] = new THREE.Box3(new THREE.Vector3(106.06325638714221, -2, 96.52807025309652), new THREE.Vector3(108.53603036713128, 5, 99.12486930594356));
+						houseBBoxes[19] = new THREE.Box3(new THREE.Vector3(102.75237914596876, -2, 93.59451357590211), new THREE.Vector3( 104.07440090579423, 5, 106.32693286271763));
+						houseBBoxes[20] = new THREE.Box3(new THREE.Vector3(104.04563588275458, -2, 102.72473068930334), new THREE.Vector3(106.35741905727425, 5, 105.70150361562314));
+						houseBBoxes[21] = new THREE.Box3(new THREE.Vector3(99.14810234678286, -2, 102.84673311258846), new THREE.Vector3(102.4701927602442, 5, 105.9941586203922));
+						houseBBoxes[22] = new THREE.Box3(new THREE.Vector3(99.01081155131915, -2, 108.76097375626866), new THREE.Vector3(100.45465324655719, 5, 110.05809480597372));
+						//staircase right
+						houseBBoxes[23] = new THREE.Box3(new THREE.Vector3(128.88063619456375, -2, 59.53862901985289), new THREE.Vector3(131.38063619456375, 10, 86.55672608810808));
+						houseBBoxes[24] = new THREE.Box3(new THREE.Vector3(130.8168760920504, -2, 84.5926758185213), new THREE.Vector3(132.4579763052896, 5, 86.48373195269879));
+						houseBBoxes[25] = new THREE.Box3(new THREE.Vector3(135.67169674190916, -2, 84.5926758185213), new THREE.Vector3(137.66662293961372, 5, 86.48373195269879));
+						houseBBoxes[26] = new THREE.Box3(new THREE.Vector3(130.8496419822157, -2, 74.61870906474452), new THREE.Vector3(137.46714770727594, 4, 79.90802622820496));
+						houseBBoxes[27] = new THREE.Box3(new THREE.Vector3(122.12668844673371, -2, 59.42179484667289), new THREE.Vector3(129.706469490173, 4, 64.31335288045861));
+						houseBBoxes[28] = new THREE.Box3(new THREE.Vector3(129.2629798569308, -2, 55.03994753509372), new THREE.Vector3(131.7236452168798, 4, 60.114792437903446));
+						houseBBoxes[29] = new THREE.Box3(new THREE.Vector3(131.7236452168798, -2, 55.03994753509372), new THREE.Vector3(133.2445904539804, 4, 59.08564066184938));
+						houseBBoxes[30] = new THREE.Box3(new THREE.Vector3(135.52433486855918, -2, 55.03994753509372), new THREE.Vector3(136.92014319309822, 4, 59.08564066184938));
+						houseBBoxes[31] = new THREE.Box3(new THREE.Vector3(120.81195353525418, -2, 44.85460598627714), new THREE.Vector3(123.36836002979904, 4, 57.29577560969231));
+						houseBBoxes[32] = new THREE.Box3(new THREE.Vector3(120.41991895282634, -2, 36.31434396332208), new THREE.Vector3(123.78127666088803, 5, 42.40199278701425));
+						houseBBoxes[33] = new THREE.Box3(new THREE.Vector3(113.20785474958362, -2, 37.06839142999161), new THREE.Vector3(115.98320813363452, 5, 48.20875468450057));
+						houseBBoxes[34] = new THREE.Box3(new THREE.Vector3(115.98320813363452 , -2, 45.38157356103352), new THREE.Vector3(120.95116151756916, 5, 49.476061933511684));
+						houseBBoxes[35] = new THREE.Box3(new THREE.Vector3(101.03194123374467, -2, 55.06100190931044), new THREE.Vector3(104.04633767665882, 5, 57.77163546582174));
+						houseBBoxes[36] = new THREE.Box3(new THREE.Vector3(129.1891253183756, 4.5 , 54.31888480089888), new THREE.Vector3(137.49359585119197, 10, 60.31888480089888));
+						houseBBoxes[37] = new THREE.Box3(new THREE.Vector3(120.39636728351383, 4.5, 37.925722871428334), new THREE.Vector3(123.39636728351383, 10, 60.28532910808158));
+						houseBBoxes[38] = new THREE.Box3(new THREE.Vector3(122.92172008110063, 4.5, 60.28532910808158), new THREE.Vector3(124.92172008110063, 10, 61.78532910808158));
+						houseBBoxes[39] = new THREE.Box3(new THREE.Vector3(127.42795102807455, 4.5, 60.28532910808158), new THREE.Vector3(129.1504177923486, 10, 61.78532910808158));
 						console.log(house);
-				
-
                     },
                     // called while loading is progressing
                     function (xhr) {
@@ -130,11 +176,18 @@
                         console.log(error);
                     });
 
-                loader.load('js/Objects/doom.gltf', function (gltf) {
+                loader.load('js/Objects/DoomGuy/doom2.0.glb', function (gltf) {
                     doomGuy = gltf.scene;
 					scene.add(doomGuy);
                     doomGuy.position.set(55, -1.5, 19.5);
-					doomGuy.name = "doomGuy";
+                    doomGuy.name = "doomGuy";
+                    doomGuy.scale.set(1.5, 1.5, 1.5);
+					mixer = new THREE.AnimationMixer(gltf.scene);
+                    walk = mixer.clipAction(gltf.animations[3]);
+                    run = mixer.clipAction(gltf.animations[0]);
+                    still = mixer.clipAction(gltf.animations[1]);
+                    stillToWalk = mixer.clipAction(gltf.animations[2])
+
                    });
                 loader.load('js/Objects/scene.gltf', function (gltf) {
                     building = gltf.scene;
@@ -142,6 +195,15 @@
                     building.position.z = -200; 
 					building.name = "building";
 					building.scale.set(3, 3, 3);
+					let i = 0;  
+					building.traverse( function ( child ) {
+						if ( child instanceof THREE.Object3D  ) {
+							buildingBBoxes[i] = new THREE.Box3(); 
+							buildingBBoxes[i].setFromObject(child);
+			//				scene.add(new THREE.Box3Helper(buildingBBoxes[i], 0xffff00));
+							i++;
+						}});
+
                    });	
                 loader.load('js/Objects/skull/scene.gltf', function (gltf) {
 					skull = gltf.scene;
@@ -152,7 +214,7 @@
 					scene.add(skull2);
 					skull2.position.set(125.9, 9.6, 62.69);
 					scene.add(skull3);
-					skull3.position.set(128.03, 2.06, 48.55);
+					skull3.position.set(103.38610284366055, 0.5195993892745685, 68.39432633190229);
                    });				   
 				var backgroundLoader = new THREE.CubeTextureLoader(manager);
 
@@ -238,9 +300,23 @@
                 flashLight.position.set(0, 0, 1);
                 flashLight.target = camera;
 				//scene.add( light );
-
-               
-
+				var geometry = new THREE.BoxGeometry( 100, 100, 100 );
+				var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+				material.transparent = true;
+				material.opacity = 0;
+				cube = new THREE.Mesh( geometry, material );
+				camera.add(cube);
+				cube.position.set(0, 0, -75);
+                geometry = new THREE.PlaneGeometry( 3000, 3000,  );
+				material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
+				material.transparent = true;
+				material.opacity = 0;
+				var plane = new THREE.Mesh( geometry, material );
+				scene.add(plane);
+				plane.rotateX( - Math.PI / 2);
+				console.log(plane.position);
+				plane.position.y = -3;
+		
 				//Controls
 				controls = new THREE.PointerLockControls( camera );
                 scene.add(controls.getObject());
@@ -265,14 +341,14 @@
 							if ( canJump === true ) controls.getObject().translateY(10);
 							canJump = false;
                             break;
-                        case 17: //ctrl
-                            if (flashLight.visible == true) {
-                                flashLight.visible = false;
-                                break;
-                            }
-                            else {
-                                flashLight.visible = true;
-                            }
+//						case 17: //ctrl
+//                            if (flashLight.visible == true) {
+//                                flashLight.visible = false;
+//                                break;
+//                            }
+//                            else {
+//                                flashLight.visible = true;
+//                            }
 						case 67:
                            // camera.fov = Math.atan(Math.tan(120 * Math.PI / 360) / camera.aspect) * 360 / Math.PI; // degrees
                           //  camera.updateProjectionMatrix();
@@ -335,141 +411,75 @@
             var audioLoader = new THREE.AudioLoader();
 
 			//AMBIENT SOUND
-            var ambientFloor = new THREE.Audio(listener);
-            audioLoader.load('js/Sounds/floorCracking.ogg', function (buffer) {
-                ambientFloor.setBuffer(buffer);
-                ambientFloor.setLoop(true);
-                ambientFloor.setVolume(.7);
-                ambientFloor.play();
-            });
+            function ambientNoise() {
+                var ambientFloor = new THREE.Audio(listener);
+                audioLoader.load('js/Sounds/floorCracking.ogg', function (buffer) {
+                    ambientFloor.setBuffer(buffer);
+                    ambientFloor.setLoop(true);
+                    ambientFloor.setVolume(.7);
+                    ambientFloor.play();
+                });
 
-            var ambientWind = new THREE.Audio(listener);
-			audioLoader.load('js/Sounds/howlingWind.ogg', function (buffer) {
-                ambientWind.setBuffer(buffer);
-                ambientWind.setLoop(true);
-                ambientWind.setVolume(.5);
-                ambientWind.play();
-            });
+                var ambientWind = new THREE.Audio(listener);
+                audioLoader.load('js/Sounds/howlingWind.ogg', function (buffer) {
+                    ambientWind.setBuffer(buffer);
+                    ambientWind.setLoop(true);
+                    ambientWind.setVolume(.5);
+                    ambientWind.play();
+                });
+            }
 
-			/*//CHASE SOUND
-            var doom1 = new THREE.PositionalAudio(listener);
-            //doom1.setDirectionalCone(180, 230, 0.1);
-            //var helper = new PositionalAudioHelper(doom1, 0.1);
-            //doom1.add(helper);
-            audioLoader.load('js/Sounds/rip_and_tear.ogg', function (buffer) {
-                doom1.setBuffer(buffer);
-                doom1.setRefDistance(4);
-                doom1.play();
-            });
-            cone.add(doom1);
-			//doomGuy.add(doom1);*/
+			//CHASE SOUND
+            function chaseSound() {
+                var doom1 = new THREE.PositionalAudio(listener);
+                //doom1.setDirectionalCone(180, 230, 0.1);
+                //var helper = new PositionalAudioHelper(doom1, 0.1);
+                //doom1.add(helper);
+                audioLoader.load('js/Sounds/rip_and_tear.ogg', function (buffer) {
+                    doom1.setBuffer(buffer);
+                    doom1.setRefDistance(4);
+                    doom1.play();
+                });
+                doomGuy.add(doom1);
+            }
+            
 
 			
 			
 
 			function updateRaycasters(){
-				camera.getWorldDirection(direction);
 				var position = new THREE.Vector3();		
 				camera.getWorldPosition(position);
-				raycaster.set( position, direction);
 				raycasterD.set(position, directionD);
-				directionB.x = -direction.x;					//B for Back
-				directionB.z = -direction.z;
-				directionB.y = direction.y; 
-				raycasterB.set(position, directionB);
-				directionL.x = direction.x - .7;  				// L for Left, as in Slightly to the left.
-				directionL.z = direction.z - .3;
-				directionL.y = direction.y;
-				directionL.normalize();
-				raycasterL.set(position, directionL);
-				directionR.x = -directionL.x;
-				directionR.z = directionL.z;
-				directionR.y = directionL.y;
-				raycasterR.set(position, directionR);
-				directionLP.x = direction.x - 100;				// LP for Left Perpendicular, as in Hard Left
-				directionLP.z = direction.z - 1;
-				directionLP.y = direction.y
-				directionLP.normalize();
-				raycasterLP.set(position, directionLP);
-				directionRP.x = -directionLP.x;
-				directionRP.y = directionLP.y;
-				directionRP.z = directionLP.z;
-				raycasterRP.set(position, directionRP);
-				collisions = raycaster.intersectObjects(scene.children, true);
-				doomCollisions = raycaster.intersectObject(doomGuy, true); 
-				if(doomCollisions[0]){
-					seeDoomGuy = true; 
+				if(cubeBBox.intersectsBox(doomGuyBBox)){
+					seeDoomGuy = true;
+					walk.stop();
+					still.play();
+				}
+				else{
+					seeDoomGuy = false; 
 				}
 				
-				
-				collisionsB = raycasterB.intersectObjects(scene.children, true);
-				collisionsL = raycasterL.intersectObjects(scene.children, true);
-				collisionsLP = raycasterLP.intersectObjects(scene.children, true);
-				collisionsR = raycasterR.intersectObjects(scene.children, true);
-				collisionsRP = raycasterRP.intersectObjects(scene.children, true); 
 				collisionsD = raycasterD.intersectObjects(scene.children, true);
 				
 
-				for(i = 0; i < collisions.length; i++){
-					if(collisions[i].distance < 3.3){
-						moveForward = false;
-					}
 
-
-/*				parent = collisions[i].object;
-					while(parent){
-						parent = parent.parent;
-						if (parent == doomGuy){
-							seeDoomGuy = true; 
-						}
-					}
-*/				}
-/*					for(i = 0; i < collisionsL.length; i++){
-					if(collisionsL[i].distance < 1.2){
-						moveForward = false;
-					}
-
-					parent = collisionsL[i].object;
-					while(parent){
-						parent = parent.parent;
-						if (parent == doomGuy){
-							seeDoomGuy = true; 
-						}
-					}					
+			}
+			function checkDeath(){
+				doomGuyBBox.setFromObject(doomGuy);
+				doomGuyBBox.min.x -= 3;
+				doomGuyBBox.min.y -= 3;
+				doomGuyBBox.min.z -= 3;
+				doomGuyBBox.max.x += 3;
+				doomGuyBBox.max.y += 3;
+				doomGuyBBox.max.z += 3;
+				if(doomGuyBBox.containsPoint(camera.position) && !seeDoomGuy){
+					scene =  scene2; 
 				}
-				for(i = 0; i < collisionsR.length; i++){
-					if(collisionsR[i].distance < 1.2){
-						moveForward = false;
-					}
-
-					parent = collisionsR[i].object;
-					while(parent){
-						parent = parent.parent;
-						if (parent == doomGuy){
-							seeDoomGuy = true; 
-						}
-					}					
-				}
-*/				
-				for(i = 0; i < collisionsLP.length; i++){
-					if(collisionsLP[i].distance < 3.3){
-						moveLeft = false; 
-					}
-				}
-				for(i = 0; i < collisionsRP.length; i++){
-					if(collisionsRP[i].distance < 3.3){
-						moveRight = false; 
-					}
-				}				
-				for(i = 0; i < collisionsB.length; i++){
-					if(collisionsB[i].distance < 3.3){
-						moveBackward = false; 
-					}
-				}
+			
 			}
 			
-			
-			function setSkullBBoxs(){
+            function setSkullBBoxs() {
 				skullBBox = new THREE.Box3();
 				skullBBox.setFromObject(skull);
 				skullBBox.min.x -= 5;
@@ -502,29 +512,50 @@
 				skull3.rotateY(.1);
 			}
 			
-			function checkSkulls(){
+            function checkSkulls() {
+
+                //Count amount of skulls collected & setting visibility
 				if(skullBBox.containsPoint(camera.position) && skull.visible){
 					skullCount++;
-				}				
-				
-				if(skullBBox.containsPoint(camera.position)){
+                }
+
+				//checks if camera is touching skulls BBox, and if the skull is visible
+				//if so, the collect sound is played, and the skull is visibility is set to false
+                if (skullBBox.containsPoint(camera.position)&&skull.visible) {
+                    skullCollectSound();
 					skull.visible = false;
-				}
+                    }
+
 				if(skullBBox2.containsPoint(camera.position) && skull2.visible){
 					skullCount++;
 				}				
 				
-				if(skullBBox2.containsPoint(camera.position)){
+                if (skullBBox2.containsPoint(camera.position)&&skull2.visible) {
+					skullCollectSound();
 					skull2.visible = false;
-				}	
+                    }	
+
 				if(skullBBox3.containsPoint(camera.position) && skull3.visible){
 					skullCount++;
 				}				
 				
-				if(skullBBox3.containsPoint(camera.position)){
+                if (skullBBox3.containsPoint(camera.position)&&skull3.visible) {
+					skullCollectSound();
 					skull3.visible = false;
 				}					
-			}
+            }
+
+            function skullCollectSound() {
+                //Collect audio
+                    var collectSound = new THREE.Audio(listener);
+                    audioLoader.load('js/Sounds/collect_sound.ogg', function (buffer) {
+                        collectSound.setBuffer(buffer);
+                        collectSound.setLoop(false);
+                        collectSound.setVolume(.1);
+                        collectSound.play();
+                    });
+                
+            }
 			
 			function checkLevelProgression(){
 				if(skullCount == 3 && building.visible == false){
@@ -532,23 +563,39 @@
 					house.visible = false; 
 				}
 			}
-			
+
+			function follow() {
+				doomGuy.rotation.y = Math.atan2( ( camera.position.x - doomGuy.position.x ), ( camera.position.z - doomGuy.position.z) );
+            }
+
+
+		
 			
 			var animate = function () {
+				cubeBBox.setFromObject(cube);
 				rotateSkulls();
 				checkSkulls();
-				checkLevelProgression();
-				var doomGuyInArray = false;
-				requestAnimationFrame( animate );
-				updateRaycasters();
+                checkLevelProgression();
+                checkDeath();
+                follow();
+				dt = (Date.now() - lastFrame) / 1000
 
-				if(seeDoomGuy == false) {
-					doomGuyChase();
-					doomGuy.rotateY(.05);
-
+				if(mixer){
+					mixer.update(dt)        
 				}
 
+				lastFrame=Date.now()				
+
+				requestAnimationFrame( animate );
+                updateRaycasters();
+
+				if(seeDoomGuy == false) {
+				
+                    doomGuyChase();
+					walk.play();
+				}
 				if ( controlsEnabled ) {
+			
 					var delta = .5;
 
 					if(moveForward){
@@ -556,7 +603,6 @@
 					}
 					if(moveBackward){
 						controls.getObject().translateZ(delta);
-
 					}
 					if(moveLeft){
 						controls.getObject().translateX(-delta);
@@ -564,57 +610,48 @@
 					if(moveRight){
 						controls.getObject().translateX(delta);
 					}
-				//	if ( controls.getObject().position.y != 0  ) {
-				//		controls.getObject().position.y = 0;	
-				//	}
+
 					if(collisionsD[0]){
 						controls.getObject().position.y = collisionsD[0].point.y + 2.5; 
 					}
+					if(house.visible){	
+						for( i = 0; i < houseBBoxCount; i++){
+							if(moveForward && houseBBoxes[i].containsPoint(camera.position)){
+							moveForward = false;
+							controls.getObject().translateZ(delta);
+							}	
+							if(moveBackward && houseBBoxes[i].containsPoint(camera.position)){
+							moveBackward = false;
+							controls.getObject().translateZ(-delta);
+							}	
+							if(moveLeft && houseBBoxes[i].containsPoint(camera.position)){
+							moveLeft = false;
+							controls.getObject().translateX(delta);
+							}	
+							if(moveRight && houseBBoxes[i].containsPoint(camera.position)){
+							moveRight = false;
+							controls.getObject().translateX(-delta);
+							}	
+						}
+					}
 				}
 				renderer.render( scene, camera );
-				for( i = 0; i < collisions.length; i++){
-
-					parent = collisions[i].object; 
-					while(parent){
-						parent = parent.parent;
-						if (parent == doomGuy){
-							doomGuyInArray = true; 
-						}
-					}					
-				}
-				for(i = 0; i < collisionsL.length; i++){
-
-					parent = collisionsL[i].object; 
-					while(parent){
-						parent = parent.parent;
-						if (parent == doomGuy){
-							doomGuyInArray = true; 
-						}
-					}					
-				}		
-				for(i = 0; i < collisionsR.length; i++){
-	
-					parent = collisionsR[i].object; 
-					while(parent){
-						parent = parent.parent;
-						if (parent == doomGuy){
-							doomGuyInArray = true; 
-						}
-					}					
-				}					
 				
-				if(!doomGuyInArray){
-					seeDoomGuy = false;
-				}
+		
 				if(doomGuy.position.y != -2){
 					doomGuy.position.y = -2;
 				}
 			};
             function logDirection() {
-			//	console.log(skull);
-				console.log(skullCount);
-			//	console.log(skullBBox.containsPoint(camera.position));
-				console.log(controls.getObject().position);
+				console.log(camera.position); 
+				
+							
+					
+				//console.log(doomGuyBBox);
+				//console.log(skull);
+				//console.log(skullCount);
+				//console.log(doomGuyBBox.containsPoint(camera.position));
+				//console.log(controls.getObject().position);
 				//console.log(directionR);
 			}
 		
